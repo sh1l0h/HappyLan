@@ -6,6 +6,7 @@
 #include "stack.h"
 
 enum instruction_type {
+    DUP,
     CONST,
     ADD,
     SUB,
@@ -19,14 +20,26 @@ enum instruction_type {
     NEQ,
     AND,
     OR,
+    ALLOC,
+    PTR,
+    STOREB,
+    STOREW,
+    STORED,
+    STOREQ,
+    LOADB,
+    LOADW,
+    LOADD,
+    LOADQ,
+    STR,
+    STRLEN,
     HALT
 };
 
 struct instruction {
     enum instruction_type type;
     union {
-        int arg_int;
-        char *label;
+        int _int;
+        char *_str;
     } arg;
     size_t line;
 };
@@ -56,20 +69,16 @@ char *get_label(struct instruction *inst, struct label *labels)
 struct instruction *tokenize(FILE *f, struct label **labels, size_t *size)
 {
     size_t lines = 0;
+    size_t labels_num = 0;
     while(!feof(f))
     {
         char ch = fgetc(f);
         if(ch == '\n'){
             lines++;
         }
-    }
-    fseek(f, 0, SEEK_SET);
-
-    size_t labels_num = 0;
-    while(!feof(f)){
-        char ch = fgetc(f);
-        if(ch == ':')
+        else if(ch == ':'){
             labels_num++;
+        }
     }
     fseek(f, 0, SEEK_SET);
 
@@ -103,9 +112,10 @@ struct instruction *tokenize(FILE *f, struct label **labels, size_t *size)
             goto con;
 
         if(regexec(&val_inst, line, 0, NULL, 0)){
-            printf("err");
-            //TODO:error
-            exit(1);
+
+            printf("\033[0;31mCompilation Error:\033[0m Invalid syntax at line: %ld.\n", line_num);
+
+            goto error;    
         }
 
 
@@ -121,12 +131,15 @@ struct instruction *tokenize(FILE *f, struct label **labels, size_t *size)
             goto con;
         }
 
-        struct instruction *curr = (result + inst_num++);
+        struct instruction *curr = (result + inst_num);
         curr->line = line_num;
 
         if(strcmp(inst,"CONST") == 0){
             curr->type = CONST;
-            curr->arg.arg_int = (int) strtol(strtok(NULL, "\n "), (char **)NULL, 10);
+            curr->arg._int = (int) strtol(strtok(NULL, "\n "), (char **)NULL, 10);
+        }
+        else if(strcmp(inst,"DUP") == 0){
+            curr->type = DUP;
         }
         else if(strcmp(inst,"ADD") == 0){
             curr->type = ADD;
@@ -136,11 +149,11 @@ struct instruction *tokenize(FILE *f, struct label **labels, size_t *size)
         } 
         else if(strcmp(inst,"JUMP") == 0){
             curr->type = JUMP;
-            curr->arg.label = strdup(strtok(NULL, "\n "));
+            curr->arg._str = strdup(strtok(NULL, "\n "));
         }
         else if(strcmp(inst,"FJUMP") == 0){
             curr->type = FJUMP;
-            curr->arg.label = strdup(strtok(NULL, "\n "));
+            curr->arg._str = strdup(strtok(NULL, "\n "));
         } 
         else if(strcmp(inst, "HALT") == 0){
             curr->type = HALT;
@@ -152,14 +165,140 @@ struct instruction *tokenize(FILE *f, struct label **labels, size_t *size)
         else if(strcmp(inst, "LESS") == 0){
             curr->type = LESS;
         }
+        else if(strcmp(inst, "ALLOC") == 0){
+            curr->type = ALLOC;
+            curr->arg._int = (int) strtol(strtok(NULL, "\n "), (char **)NULL, 10);
+        }
+        else if(strcmp(inst, "STOREB") == 0){
+            curr->type = STOREB;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "STOREW") == 0){
+            curr->type = STOREW;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "STORED") == 0){
+            curr->type = STORED;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "STOREQ") == 0){
+            curr->type = STOREQ;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "LOADB") == 0){
+            curr->type = LOADB;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "LOADW") == 0){
+            curr->type = LOADW;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "LOADD") == 0){
+            curr->type = LOADD;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "LOADQ") == 0){
+            curr->type = LOADQ;
+            char *t = strtok(NULL, "\n ");
+            if(t){
+                curr->arg._int = (int) strtol(t, (char **)NULL,10); 
+            }
+            else{
+                curr->arg._int = -1;
+            }
+        }
+        else if(strcmp(inst, "PTR") == 0){
+            curr->type = PTR;
+        }
+        else if(strcmp(inst, "STR") == 0){
+            curr->type = STR;
+            char *imm_start = strchr(inst + 4, '\"') + 1;
+            size_t len = 0;
+            char *curr_char = imm_start;
+            while(*curr_char != '\"' || *(curr_char -1) == '\\'){
+                if(*curr_char != '\\'){
+                    len++;
+                }
+                curr_char++;
+            }
 
+            curr->arg._str = (char *) malloc((len + 1)*sizeof(char));
+            curr->arg._str[len] = '\0';
+            curr_char = imm_start;
+            size_t index = 0;
+            while(*curr_char != '\"' || *(curr_char -1) == '\\'){
+                if(*curr_char != '\\'){
+                    curr->arg._str[index++] = *curr_char;
+                }
+                else{
+                    if(*(++curr_char) == 'n')
+                        curr->arg._str[index++] = '\n';
+                }
+                curr_char++;
+            }
+        }
+        else if(strcmp(inst, "STRLEN") == 0){
+            curr->type = STRLEN;
+        }
+        else{
+            printf("\033[0;31mCompilation Error:\033[0m Unknown instruction \"%s\" at line: %ld.\n", inst, line_num);
+            goto error;
+        }
+
+
+                
+        inst_num++;
 con:
         free(line);
         len =0;
         line = NULL;
     }
 
-    if(realloc(result, sizeof(struct instruction)*(inst_num)) == NULL){
+    free(line);
+
+    if((result = realloc(result, sizeof(struct instruction)*(inst_num))) == NULL){
         fclose(f);
         //TODO: error massage
         exit(1);
@@ -172,8 +311,27 @@ con:
     
     *size = inst_num;
     fclose(f);
+    regfree(&to_skip);
+    regfree(&val_inst);
 
     return result;
+
+error:
+    for(int i = 0; i < labels_num; i++)
+        free((*labels)[i].name);
+
+    free(*labels);
+
+    for(int i = 0; i < inst_num; i++)
+        if(result[i].type == JUMP || result[i].type == FJUMP || result[i].type == STR)
+            free(result[i].arg._str);
+    free(result);
+
+    free(line);
+    fclose(f);
+    regfree(&to_skip);
+    regfree(&val_inst);
+    exit(1);
 }
     
 void simulate(struct instruction *program, struct label *labels)
@@ -186,7 +344,7 @@ void simulate(struct instruction *program, struct label *labels)
             case CONST:
                 struct element *e = (struct element *) malloc(sizeof(struct element));
                 e->type = et_int;
-                e->data.e_int = curr->arg.arg_int;
+                e->data.e_int = curr->arg._int;
                 add(&stack, e);
                 break;
 
@@ -213,7 +371,7 @@ void simulate(struct instruction *program, struct label *labels)
             case JUMP:
                 struct label *t = labels;
                 while(t->_inst != NULL){
-                    if(strcmp(curr->arg.label, t->name) == 0){
+                    if(strcmp(curr->arg._str, t->name) == 0){
                         curr = t->_inst;
                         goto con;
                     }
@@ -247,7 +405,7 @@ void simulate(struct instruction *program, struct label *labels)
 
                 struct label *F_t = labels;
                 while(F_t->_inst != NULL){
-                    if(strcmp(curr->arg.label, F_t->name) == 0){
+                    if(strcmp(curr->arg._str, F_t->name) == 0){
                         curr = F_t->_inst;
                         goto con;
                     }
@@ -362,10 +520,11 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
     fprintf(f, "	leave\n");
     fprintf(f, "	ret\n");
 
-
+    int _strlen = 0;
+    size_t mem_to_alloc = 0;
     fprintf(f, "\n_start:\n");
     for(int i = 0; i < program_size; i++){
-        struct instruction curr = program[i];
+        struct instruction curr = *((struct instruction *)program + i);
 
         char *label_name = get_label(program + i, labels);
 
@@ -376,8 +535,16 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
         
             case CONST:
                 fprintf(f, ";   CONST\n");
-                fprintf(f, "    push    %d\n", curr.arg.arg_int);
+                fprintf(f, "    push    %d\n", curr.arg._int);
                 break;
+
+            case DUP:
+                fprintf(f, ";   DUP\n");
+                fprintf(f, "    pop     rax\n");
+                fprintf(f, "    push    rax\n");
+                fprintf(f, "    push    rax\n");
+                break;
+
         
             case ADD:
                 fprintf(f, ";   ADD\n");
@@ -389,8 +556,14 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
 
             case WRITE:
                 fprintf(f, ";   WRITE\n");
-                fprintf(f, "    pop     rdi\n");
-                fprintf(f, "    call    write_int\n");
+                fprintf(f, "    pop     rsi\n");
+                fprintf(f, "    mov     rdi, rsi\n");
+                fprintf(f, "    call    strlen\n");
+                fprintf(f, "    mov     rdx, rax\n");
+                fprintf(f, "    mov     rax, 1\n");
+                fprintf(f, "    mov     rdi, 1\n");
+                fprintf(f, "	syscall\n");
+                _strlen = 1;
                 break;
 
             case LESS:
@@ -408,14 +581,14 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
 
             case JUMP:
                 fprintf(f, ";   JUMP\n");
-                fprintf(f, "    jmp     %s\n", curr.arg.label);
+                fprintf(f, "    jmp     %s\n", curr.arg._str);
                 break;
 
             case FJUMP:
                 fprintf(f, ";   FJUMP\n");
                 fprintf(f, "    pop     rax\n");
                 fprintf(f, "    cmp     rax, 0\n");
-                fprintf(f, "    je      %s\n", curr.arg.label);
+                fprintf(f, "    je      %s\n", curr.arg._str);
                 break;
 
             case EQ:
@@ -431,6 +604,144 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
                 fprintf(f, "E_%d:\n", i);
                 break;
 
+            case ALLOC:
+                mem_to_alloc = curr.arg._int; 
+                break;
+
+
+            case STOREB:
+                fprintf(f, ";   STOREB\n");
+                fprintf(f, "    pop     rbx\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    mov     BYTE [rax], bl\n");
+                break;
+
+            case STOREW:
+                fprintf(f, ";   STOREW\n");
+                fprintf(f, "    pop     rbx\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    mov     WORD [rax], bx\n");
+                break;
+
+            case STORED:
+                fprintf(f, ";   STORED\n");
+                fprintf(f, "    pop     rbx\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    mov     DWORD [rax], ebx\n");
+                break;
+
+            case STOREQ:
+                fprintf(f, ";   STOREQ\n");
+                fprintf(f, "    pop     rbx\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    mov     QWORD [rax], rbx\n");
+                break;
+
+            case LOADB:
+                fprintf(f, ";   LOADB\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    xor     rbx, rbx\n");
+                fprintf(f, "    mov     bl, BYTE [rax]\n");
+                fprintf(f, "    push    rbx\n");
+                break;
+
+            case LOADW:
+                fprintf(f, ";   LOADW\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    xor     rbx, rbx\n");
+                fprintf(f, "    mov     bx, WORD [rax]\n");
+                fprintf(f, "    push    rbx\n");
+                break;
+
+            case LOADD:
+                fprintf(f, ";   LOADD\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    xor     rbx, rbx\n");
+                fprintf(f, "    mov     ebx, DWORD [rax]\n");
+                fprintf(f, "    push    rbx\n");
+                break;
+
+            case LOADQ:
+                fprintf(f, ";   LOADQ\n");
+                if(curr.arg._int != -1){
+                    fprintf(f, "    mov     rax, %d\n", curr.arg._int);
+                    fprintf(f, "    add     rax, mem\n");
+                }
+                else{
+                    fprintf(f, "    pop     rax\n");
+                }
+                fprintf(f, "    xor     rbx, rbx\n");
+                fprintf(f, "    mov     rbx, QWORD [rax]\n");
+                fprintf(f, "    push    rbx\n");
+                break;
+                     
+            case PTR:
+                fprintf(f, ";   PTR\n");
+                fprintf(f, "    push    mem\n");
+                break;
+
+            case STR:
+                fprintf(f, ";   STR\n");
+                fprintf(f, "    pop     rax\n");
+                size_t STR_index = 0;
+                char *STR_temp = curr.arg._str;
+                while(*STR_temp != '\0')
+                    fprintf(f, "    mov     BYTE %ld[rax], %d\n", STR_index++, (int)*(STR_temp++));
+
+                fprintf(f, "    mov     BYTE %ld[rax], 0\n", STR_index);
+                break;
+
+            case STRLEN:
+                fprintf(f, ";   STRLEN\n");
+                fprintf(f, "    pop     rdi\n");
+                fprintf(f, "    call strlen\n"); 
+                fprintf(f, "    push    rax\n");
+                _strlen = 1;
+                break;
+
+
             case HALT:
                 fprintf(f, ";   HALT\n");
                 fprintf(f, "    mov     rax, 60\n");
@@ -439,6 +750,25 @@ void compile(struct instruction *program, size_t program_size, struct label *lab
                 break;
         }
     }
+
+    if(_strlen){
+        fprintf(f, "\nstrlen:\n");
+        fprintf(f, "    xor     rax, rax\n");
+        fprintf(f, "while_start:\n");
+        fprintf(f, "    cmp     BYTE [rdi], 0\n");
+        fprintf(f, "    je      while_end\n");
+        fprintf(f, "    add     rax, 1\n");
+        fprintf(f, "    add     rdi, 1\n");
+        fprintf(f, "    jmp     while_start\n");
+        fprintf(f, "while_end:\n");
+        fprintf(f, "    ret\n");
+    }
+
+    if(mem_to_alloc) {
+        fprintf(f, "\nsection .bss\n");
+        fprintf(f, "    mem: resb %ld", mem_to_alloc);
+    }
+
 
 
     fclose(f);
@@ -526,11 +856,17 @@ int main(int argc, char **argv)
         compile(program, program_size, labels, argv[2], out_name);
     
     for(int i = 0; i < program_size; i++){
-        if(program[i].type == JUMP){
-            free(program[i].arg.label);
+        if(program[i].type == JUMP || program[i].type == FJUMP || program[i].type == STR){
+            free(program[i].arg._str);
         }
     }
-    
+
+    struct label *temp = labels;
+
+    if(temp) 
+        while(temp->_inst != NULL)
+            free((temp++)->name);
+   
     free(labels);
     free(program);
     
